@@ -38,11 +38,11 @@ public class AdminService {
     App createdApp = appService.save(app);
 
     String appId = createdApp.getAppId();
-
+    // 创建 application appnamespace
     appNamespaceService.createDefaultAppNamespace(appId, createBy);
-
+    // 创建 默认集群 default
     clusterService.createDefaultCluster(appId, createBy);
-
+    // 创建 application namespace 创建 Cluster 的默认命名空间
     namespaceService.instanceOfAppNamespaces(appId, ConfigConsts.CLUSTER_NAME_DEFAULT, createBy);
 
     return app;

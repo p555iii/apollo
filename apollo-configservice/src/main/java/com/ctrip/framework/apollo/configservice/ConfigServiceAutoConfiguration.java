@@ -68,6 +68,9 @@ public class ConfigServiceAutoConfiguration {
       this.configService = configService;
     }
 
+    /**
+     * 这里注入了releaseMessageScanner 的所有属性
+     */
     @Bean
     public ReleaseMessageScanner releaseMessageScanner() {
       ReleaseMessageScanner releaseMessageScanner = new ReleaseMessageScanner();

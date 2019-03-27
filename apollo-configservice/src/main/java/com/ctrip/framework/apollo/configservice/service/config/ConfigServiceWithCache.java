@@ -68,6 +68,7 @@ public class ConfigServiceWithCache extends AbstractConfigService {
         .build(new CacheLoader<String, ConfigCacheEntry>() {
           @Override
           public ConfigCacheEntry load(String key) throws Exception {
+            // 格式不正确，返回 nullConfigCacheEntry
             List<String> namespaceInfo = STRING_SPLITTER.splitToList(key);
             if (namespaceInfo.size() != 3) {
               Tracer.logError(
@@ -77,20 +78,22 @@ public class ConfigServiceWithCache extends AbstractConfigService {
 
             Transaction transaction = Tracer.newTransaction(TRACER_EVENT_CACHE_LOAD, key);
             try {
+              // 获得最新的 ReleaseMessage 对象
               ReleaseMessage latestReleaseMessage = releaseMessageService.findLatestReleaseMessageForMessages(Lists
                   .newArrayList(key));
+              // 获得最新的，并且有效的 Release 对象
               Release latestRelease = releaseService.findLatestActiveRelease(namespaceInfo.get(0), namespaceInfo.get(1),
                   namespaceInfo.get(2));
 
               transaction.setStatus(Transaction.SUCCESS);
-
+              // 获得通知编号
               long notificationId = latestReleaseMessage == null ? ConfigConsts.NOTIFICATION_ID_PLACEHOLDER : latestReleaseMessage
                   .getId();
-
+              // 若 latestReleaseMessage 和 latestRelease 都为空，返回 nullConfigCacheEntry
               if (notificationId == ConfigConsts.NOTIFICATION_ID_PLACEHOLDER && latestRelease == null) {
                 return nullConfigCacheEntry;
               }
-
+              // 创建 ConfigCacheEntry 对象
               return new ConfigCacheEntry(notificationId, latestRelease);
             } catch (Throwable ex) {
               transaction.setStatus(ex);
@@ -100,6 +103,7 @@ public class ConfigServiceWithCache extends AbstractConfigService {
             }
           }
         });
+    // 初始化 configIdCache
     configIdCache = CacheBuilder.newBuilder()
         .expireAfterAccess(DEFAULT_EXPIRED_AFTER_ACCESS_IN_MINUTES, TimeUnit.MINUTES)
         .build(new CacheLoader<Long, Optional<Release>>() {
@@ -134,14 +138,16 @@ public class ConfigServiceWithCache extends AbstractConfigService {
     String key = ReleaseMessageKeyGenerator.generate(appId, clusterName, namespaceName);
 
     Tracer.logEvent(TRACER_EVENT_CACHE_GET, key);
-
+    // 从缓存 configCache 中，读取 ConfigCacheEntry 对象
     ConfigCacheEntry cacheEntry = configCache.getUnchecked(key);
-
+    // 若客户端的通知编号更大，说明缓存已经过期。
     //cache is out-dated
     if (clientMessages != null && clientMessages.has(key) &&
         clientMessages.get(key) > cacheEntry.getNotificationId()) {
       //invalidate the cache and try to load from db again
+      // 清空对应的缓存
       invalidate(key);
+      // 读取 ConfigCacheEntry 对象，重新从 DB 中加载。
       cacheEntry = configCache.getUnchecked(key);
     }
 

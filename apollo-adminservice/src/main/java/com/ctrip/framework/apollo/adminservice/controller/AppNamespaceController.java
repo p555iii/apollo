@@ -37,7 +37,7 @@ public class AppNamespaceController {
   @PostMapping("/apps/{appId}/appnamespaces")
   public AppNamespaceDTO create(@RequestBody AppNamespaceDTO appNamespace,
                                 @RequestParam(defaultValue = "false") boolean silentCreation) {
-
+    // 由dto对象转为 po对象
     AppNamespace entity = BeanUtils.transform(AppNamespace.class, appNamespace);
     AppNamespace managedEntity = appNamespaceService.findOne(entity.getAppId(), entity.getName());
 

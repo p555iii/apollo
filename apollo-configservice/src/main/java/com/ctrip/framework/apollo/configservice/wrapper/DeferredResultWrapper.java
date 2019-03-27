@@ -13,14 +13,26 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * DeferredResult 包装器，封装 DeferredResult 的公用方法
  * @author Jason Song(song_s@ctrip.com)
  */
 public class DeferredResultWrapper {
+  /**
+   * 默认超时时间
+   */
   private static final long TIMEOUT = 60 * 1000;//60 seconds
+  /**
+   * 未修改时的 ResponseEntity 响应，使用 302 状态码。
+   */
   private static final ResponseEntity<List<ApolloConfigNotification>>
       NOT_MODIFIED_RESPONSE_LIST = new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
-
+  /**
+   * 归一化和原始的 Namespace 的名字的 Map
+   */
   private Map<String, String> normalizedNamespaceNameToOriginalNamespaceName;
+  /**
+   * 响应的 DeferredResult 对象
+   */
   private DeferredResult<ResponseEntity<List<ApolloConfigNotification>>> result;
 
 

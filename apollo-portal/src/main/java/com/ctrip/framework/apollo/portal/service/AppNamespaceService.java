@@ -104,13 +104,13 @@ public class AppNamespaceService {
   @Transactional
   public AppNamespace createAppNamespaceInLocal(AppNamespace appNamespace, boolean appendNamespacePrefix) {
     String appId = appNamespace.getAppId();
-
+    // 校验对应的 App 是否存在。若不存在，抛出 BadRequestException 异常
     //add app org id as prefix
     App app = appService.load(appId);
     if (app == null) {
       throw new BadRequestException("App not exist. AppId = " + appId);
     }
-
+    // 拼接 AppNamespace 的 `name` 属性。
     StringBuilder appNamespaceName = new StringBuilder();
     //add prefix postfix
     appNamespaceName
@@ -122,11 +122,11 @@ public class AppNamespaceService {
     if (appNamespace.getComment() == null) {
       appNamespace.setComment("");
     }
-
+    // 校验 AppNamespace 的 `format` 是否合法
     if (!ConfigFileFormat.isValidFormat(appNamespace.getFormat())) {
      throw new BadRequestException("Invalid namespace format. format must be properties、json、yaml、yml、xml");
     }
-
+    // 设置 AppNamespace 的创建和修改人
     String operator = appNamespace.getDataChangeCreatedBy();
     if (StringUtils.isEmpty(operator)) {
       operator = userInfoHolder.getUser().getUserId();
@@ -148,7 +148,7 @@ public class AppNamespaceService {
     }
 
     AppNamespace createdAppNamespace = appNamespaceRepository.save(appNamespace);
-
+    //初始化 namespace 角色信息和环境角色信息
     roleInitializationService.initNamespaceRoles(appNamespace.getAppId(), appNamespace.getName(), operator);
     roleInitializationService.initNamespaceEnvRoles(appNamespace.getAppId(), appNamespace.getName(), operator);
 

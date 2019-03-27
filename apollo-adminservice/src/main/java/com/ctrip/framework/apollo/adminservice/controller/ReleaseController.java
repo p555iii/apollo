@@ -107,21 +107,24 @@ public class ReleaseController {
                             @RequestParam(name = "comment", required = false) String releaseComment,
                             @RequestParam("operator") String operator,
                             @RequestParam(name = "isEmergencyPublish", defaultValue = "false") boolean isEmergencyPublish) {
+    // 校验对应的 Namespace 对象是否存在。若不存在，抛出 NotFoundException 异常
     Namespace namespace = namespaceService.findOne(appId, clusterName, namespaceName);
     if (namespace == null) {
       throw new NotFoundException(String.format("Could not find namespace for %s %s %s", appId,
                                                 clusterName, namespaceName));
     }
+    // 发布 Namespace 的配置
     Release release = releaseService.publish(namespace, releaseName, releaseComment, operator, isEmergencyPublish);
 
     //send release message
-    Namespace parentNamespace = namespaceService.findParentNamespace(namespace);
+    Namespace parentNamespace = namespaceService.findParentNamespace(namespace); // 灰度发布
     String messageCluster;
     if (parentNamespace != null) {
       messageCluster = parentNamespace.getClusterName();
     } else {
       messageCluster = clusterName;
     }
+    // 发送 Release 消息 这里会跳到 biz这个项目的代码中去
     messageSender.sendMessage(ReleaseMessageKeyGenerator.generate(appId, messageCluster, namespaceName),
                               Topics.APOLLO_RELEASE_TOPIC);
     return BeanUtils.transform(ReleaseDTO.class, release);

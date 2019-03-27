@@ -86,6 +86,7 @@ public class ItemService {
 
 
   public ItemDTO createItem(String appId, Env env, String clusterName, String namespaceName, ItemDTO item) {
+    // appId + env + 集群名 + namespaceName 唯一确定一个 nameSpace
     NamespaceDTO namespace = namespaceAPI.loadNamespace(appId, env, clusterName, namespaceName);
     if (namespace == null) {
       throw new BadRequestException(

@@ -42,7 +42,7 @@ public class ItemController {
                         @PathVariable("clusterName") String clusterName,
                         @PathVariable("namespaceName") String namespaceName, @RequestBody ItemDTO dto) {
     Item entity = BeanUtils.transform(Item.class, dto);
-
+// 创建 ConfigChangeContentBuilder 对象
     ConfigChangeContentBuilder builder = new ConfigChangeContentBuilder();
     Item managedEntity = itemService.findOne(appId, clusterName, namespaceName, entity.getKey());
     if (managedEntity != null) {

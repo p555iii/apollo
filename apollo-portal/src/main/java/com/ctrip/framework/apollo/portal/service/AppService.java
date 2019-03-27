@@ -98,7 +98,7 @@ public class AppService {
   public App createAppInLocal(App app) {
     String appId = app.getAppId();
     App managedApp = appRepository.findByAppId(appId);
-
+    //如果已经存在该appid的 app
     if (managedApp != null) {
       throw new BadRequestException(String.format("App already exists. AppId = %s", appId));
     }
@@ -108,16 +108,17 @@ public class AppService {
       throw new BadRequestException("Application's owner not exist.");
     }
     app.setOwnerEmail(owner.getEmail());
-
+    // 获取当前登录用户信息
     String operator = userInfoHolder.getUser().getUserId();
     app.setDataChangeCreatedBy(operator);
     app.setDataChangeLastModifiedBy(operator);
 
     App createdApp = appRepository.save(app);
-
+    // 创建 App 的默认命名空间 "application"
     appNamespaceService.createDefaultAppNamespace(appId);
+    // 初始化 App 角色
     roleInitializationService.initAppRoles(createdApp);
-
+    // Tracer 日志
     Tracer.logEvent(TracerEventType.CREATE_APP, appId);
 
     return createdApp;

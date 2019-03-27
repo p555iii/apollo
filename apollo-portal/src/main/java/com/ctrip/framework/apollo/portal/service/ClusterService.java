@@ -27,9 +27,11 @@ public class ClusterService {
   }
 
   public ClusterDTO createCluster(Env env, ClusterDTO cluster) {
+    // 根据appId 和 环境 和 集群名 到 admin server 去判断  当前集群是否重复
     if (!clusterAPI.isClusterUnique(cluster.getAppId(), env, cluster.getName())) {
       throw new BadRequestException(String.format("cluster %s already exists.", cluster.getName()));
     }
+    // 调用 admin server 的rpc 接口 创建集群
     ClusterDTO clusterDTO = clusterAPI.create(env, cluster);
 
     Tracer.logEvent(TracerEventType.CREATE_CLUSTER, cluster.getAppId(), "0", cluster.getName());

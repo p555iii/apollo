@@ -17,47 +17,49 @@ import java.util.List;
 @Component
 public class CreationListener {
 
-  private static Logger logger = LoggerFactory.getLogger(CreationListener.class);
+    private static Logger logger = LoggerFactory.getLogger(CreationListener.class);
 
-  private final PortalSettings portalSettings;
-  private final AdminServiceAPI.AppAPI appAPI;
-  private final AdminServiceAPI.NamespaceAPI namespaceAPI;
+    private final PortalSettings portalSettings;
+    private final AdminServiceAPI.AppAPI appAPI;
+    private final AdminServiceAPI.NamespaceAPI namespaceAPI;
 
-  public CreationListener(
-      final PortalSettings portalSettings,
-      final AdminServiceAPI.AppAPI appAPI,
-      final AdminServiceAPI.NamespaceAPI namespaceAPI) {
-    this.portalSettings = portalSettings;
-    this.appAPI = appAPI;
-    this.namespaceAPI = namespaceAPI;
-  }
-
-  @EventListener
-  public void onAppCreationEvent(AppCreationEvent event) {
-    AppDTO appDTO = BeanUtils.transform(AppDTO.class, event.getApp());
-    List<Env> envs = portalSettings.getActiveEnvs();
-    for (Env env : envs) {
-      try {
-        appAPI.createApp(env, appDTO);
-      } catch (Throwable e) {
-        logger.error("Create app failed. appId = {}, env = {})", appDTO.getAppId(), env, e);
-        Tracer.logError(String.format("Create app failed. appId = %s, env = %s", appDTO.getAppId(), env), e);
-      }
+    public CreationListener(
+            final PortalSettings portalSettings,
+            final AdminServiceAPI.AppAPI appAPI,
+            final AdminServiceAPI.NamespaceAPI namespaceAPI) {
+        this.portalSettings = portalSettings;
+        this.appAPI = appAPI;
+        this.namespaceAPI = namespaceAPI;
     }
-  }
 
-  @EventListener
-  public void onAppNamespaceCreationEvent(AppNamespaceCreationEvent event) {
-    AppNamespaceDTO appNamespace = BeanUtils.transform(AppNamespaceDTO.class, event.getAppNamespace());
-    List<Env> envs = portalSettings.getActiveEnvs();
-    for (Env env : envs) {
-      try {
-        namespaceAPI.createAppNamespace(env, appNamespace);
-      } catch (Throwable e) {
-        logger.error("Create appNamespace failed. appId = {}, env = {}", appNamespace.getAppId(), env, e);
-        Tracer.logError(String.format("Create appNamespace failed. appId = %s, env = %s", appNamespace.getAppId(), env), e);
-      }
+    @EventListener
+    public void onAppCreationEvent(AppCreationEvent event) {
+        AppDTO appDTO = BeanUtils.transform(AppDTO.class, event.getApp());
+        // 获得有效的 Env 数组
+        List<Env> envs = portalSettings.getActiveEnvs();
+        // 循环 Env 数组，调用对应的 Admin Service 的 API ，创建 App 对象。
+        for (Env env : envs) {
+            try {
+                appAPI.createApp(env, appDTO);
+            } catch (Throwable e) {
+                logger.error("Create app failed. appId = {}, env = {})", appDTO.getAppId(), env, e);
+                Tracer.logError(String.format("Create app failed. appId = %s, env = %s", appDTO.getAppId(), env), e);
+            }
+        }
     }
-  }
+
+    @EventListener
+    public void onAppNamespaceCreationEvent(AppNamespaceCreationEvent event) {
+        AppNamespaceDTO appNamespace = BeanUtils.transform(AppNamespaceDTO.class, event.getAppNamespace());
+        List<Env> envs = portalSettings.getActiveEnvs();
+        for (Env env : envs) {
+            try {
+                namespaceAPI.createAppNamespace(env, appNamespace);
+            } catch (Throwable e) {
+                logger.error("Create appNamespace failed. appId = {}, env = {}", appNamespace.getAppId(), env, e);
+                Tracer.logError(String.format("Create appNamespace failed. appId = %s, env = %s", appNamespace.getAppId(), env), e);
+            }
+        }
+    }
 
 }

@@ -71,30 +71,33 @@ public class ConfigController {
                                   HttpServletRequest request, HttpServletResponse response) throws IOException {
     String originalNamespace = namespace;
     //strip out .properties suffix
+    // 若 Namespace 名以 .properties 结尾，移除该结尾，并设置到 ApolloConfigNotification 中。例如 application.properties => application 。
     namespace = namespaceUtil.filterNamespaceName(namespace);
     //fix the character case issue, such as FX.apollo <-> fx.apollo
+    // 归一化 名字 统一小写
     namespace = namespaceUtil.normalizeNamespace(appId, namespace);
-
+    // 若 clientIp 未提交，从 Request 中获取。
     if (Strings.isNullOrEmpty(clientIp)) {
       clientIp = tryToGetClientIp(request);
     }
-
+    // 解析 messagesAsString 参数，创建 ApolloNotificationMessages 对象。  这个值就是NotificationControllerV2 传递到客户端的值
     ApolloNotificationMessages clientMessages = transformMessages(messagesAsString);
 
     List<Release> releases = Lists.newLinkedList();
-
+    // 获得 Namespace 对应的 Release 对象
     String appClusterNameLoaded = clusterName;
     if (!ConfigConsts.NO_APPID_PLACEHOLDER.equalsIgnoreCase(appId)) {
+      // 获得 Release 对象
       Release currentAppRelease = configService.loadConfig(appId, clientIp, appId, clusterName, namespace,
           dataCenter, clientMessages);
-
+      // 添加到 Release 数组中
       if (currentAppRelease != null) {
         releases.add(currentAppRelease);
         //we have cluster search process, so the cluster name might be overridden
         appClusterNameLoaded = currentAppRelease.getClusterName();
       }
     }
-
+    // 若 Namespace 为关联类型，则获取关联的 Namespace 的 Release 对象
     //if namespace does not belong to this appId, should check if there is a public configuration
     if (!namespaceBelongsToAppId(appId, namespace)) {
       Release publicRelease = this.findPublicConfig(appId, clientIp, clusterName, namespace,
@@ -103,7 +106,7 @@ public class ConfigController {
         releases.add(publicRelease);
       }
     }
-
+    // 若获得不到 Release ，返回状态码为 404 的响应
     if (releases.isEmpty()) {
       response.sendError(HttpServletResponse.SC_NOT_FOUND,
           String.format(
@@ -113,12 +116,12 @@ public class ConfigController {
           assembleKey(appId, clusterName, originalNamespace, dataCenter));
       return null;
     }
-
+    // 记录 InstanceConfig
     auditReleases(appId, clusterName, dataCenter, clientIp, releases);
-
+    // 计算 Config Service 的合并 ReleaseKey
     String mergedReleaseKey = releases.stream().map(Release::getReleaseKey)
             .collect(Collectors.joining(ConfigConsts.CLUSTER_NAMESPACE_SEPARATOR));
-
+    // 对比 Client 的合并 Release Key 。若相等，说明没有改变，返回状态码为 302 的响应
     if (mergedReleaseKey.equals(clientSideReleaseKey)) {
       // Client side configuration is the same with server side, return 304
       response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
@@ -126,9 +129,10 @@ public class ConfigController {
           assembleKey(appId, appClusterNameLoaded, originalNamespace, dataCenter));
       return null;
     }
-
+    // 创建 ApolloConfig 对象
     ApolloConfig apolloConfig = new ApolloConfig(appId, appClusterNameLoaded, originalNamespace,
         mergedReleaseKey);
+    // 合并 Release 的配置，并将结果设置到 ApolloConfig 中
     apolloConfig.setConfigurations(mergeReleaseConfigurations(releases));
 
     Tracer.logEvent("Apollo.Config.Found", assembleKey(appId, appClusterNameLoaded,
@@ -137,16 +141,16 @@ public class ConfigController {
   }
 
   private boolean namespaceBelongsToAppId(String appId, String namespaceName) {
-    //Every app has an 'application' namespace
+    // Namespace 非 'application' ，因为每个 App 都有
     if (Objects.equals(ConfigConsts.NAMESPACE_APPLICATION, namespaceName)) {
       return true;
     }
-
+    // App 编号非空
     //if no appId is present, then no other namespace belongs to it
     if (ConfigConsts.NO_APPID_PLACEHOLDER.equalsIgnoreCase(appId)) {
       return false;
     }
-
+    // 非当前 App 下的 Namespace
     AppNamespace appNamespace = appNamespaceService.findByAppIdAndNamespace(appId, namespaceName);
 
     return appNamespace != null;
@@ -159,15 +163,16 @@ public class ConfigController {
    */
   private Release findPublicConfig(String clientAppId, String clientIp, String clusterName,
                                    String namespace, String dataCenter, ApolloNotificationMessages clientMessages) {
+    // 获得公用类型的 AppNamespace 对象
     AppNamespace appNamespace = appNamespaceService.findPublicNamespaceByName(namespace);
-
+    // 判断非当前 App 下的，那么就是关联类型。
     //check whether the namespace's appId equals to current one
     if (Objects.isNull(appNamespace) || Objects.equals(clientAppId, appNamespace.getAppId())) {
       return null;
     }
 
     String publicConfigAppId = appNamespace.getAppId();
-
+    // 获得 Namespace 最新的 Release 对象
     return configService.loadConfig(clientAppId, clientIp, publicConfigAppId, clusterName, namespace, dataCenter,
         clientMessages);
   }
@@ -178,6 +183,8 @@ public class ConfigController {
    */
   Map<String, String> mergeReleaseConfigurations(List<Release> releases) {
     Map<String, String> result = Maps.newHashMap();
+    // 反转 Release 数组，循环添加到 Map 中。
+    // 为什么要反转数组？因为关联类型的 Release 后添加到 Release 数组中。但是，App 下 的 Release 的优先级更高，所以进行反转。
     for (Release release : Lists.reverse(releases)) {
       result.putAll(gson.fromJson(release.getConfigurations(), configurationTypeReference));
     }

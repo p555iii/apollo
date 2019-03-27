@@ -25,6 +25,7 @@ public class DefaultConfigService extends AbstractConfigService {
   @Override
   protected Release findLatestActiveRelease(String configAppId, String configClusterName, String configNamespace,
                                             ApolloNotificationMessages clientMessages) {
+    // 这个就很简单了直接查数据库
     return releaseService.findLatestActiveRelease(configAppId, configClusterName,
         configNamespace);
   }

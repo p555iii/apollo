@@ -97,6 +97,11 @@ public class AppController {
     return appService.findByAppIds(appIds, page);
   }
 
+  /**
+   * 创建 app
+   * @param appModel
+   * @return
+   */
   @PostMapping
   public App create(@Valid @RequestBody AppModel appModel) {
 
@@ -105,7 +110,7 @@ public class AppController {
     App createdApp = appService.createAppInLocal(app);
 
     publisher.publishEvent(new AppCreationEvent(createdApp));
-
+    // 授予 App 管理员的角色
     Set<String> admins = appModel.getAdmins();
     if (!CollectionUtils.isEmpty(admins)) {
       rolePermissionService

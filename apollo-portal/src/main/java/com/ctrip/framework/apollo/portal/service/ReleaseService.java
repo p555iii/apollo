@@ -44,13 +44,14 @@ public class ReleaseService {
 
   public ReleaseDTO publish(NamespaceReleaseModel model) {
     Env env = model.getEnv();
+    //是否是紧急发布
     boolean isEmergencyPublish = model.isEmergencyPublish();
     String appId = model.getAppId();
     String clusterName = model.getClusterName();
     String namespaceName = model.getNamespaceName();
     String releaseBy = StringUtils.isEmpty(model.getReleasedBy()) ?
                        userInfoHolder.getUser().getUserId() : model.getReleasedBy();
-
+    // 调用admin-server
     ReleaseDTO releaseDTO = releaseAPI.createRelease(appId, env, clusterName, namespaceName,
                                                      model.getReleaseTitle(), model.getReleaseComment(),
                                                      releaseBy, isEmergencyPublish);

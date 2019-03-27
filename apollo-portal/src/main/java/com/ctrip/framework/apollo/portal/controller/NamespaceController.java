@@ -124,20 +124,21 @@ public class NamespaceController {
   @PostMapping("/apps/{appId}/namespaces")
   public ResponseEntity<Void> createNamespace(@PathVariable String appId,
                                               @RequestBody List<NamespaceCreationModel> models) {
-
+    // 校验 `models` 非空
     checkModel(!CollectionUtils.isEmpty(models));
-
+    // 这里每次关联只能关联一个namespace
     String namespaceName = models.get(0).getNamespace().getNamespaceName();
     String operator = userInfoHolder.getUser().getUserId();
-
+    // 初始化 Namespace 的 Role 们
     roleInitializationService.initNamespaceRoles(appId, namespaceName, operator);
     roleInitializationService.initNamespaceEnvRoles(appId, namespaceName, operator);
 
     for (NamespaceCreationModel model : models) {
       NamespaceDTO namespace = model.getNamespace();
+      // 校验相关参数非空
       RequestPrecondition.checkArgumentsNotEmpty(model.getEnv(), namespace.getAppId(),
                                                  namespace.getClusterName(), namespace.getNamespaceName());
-
+      // 创建 Namespace 对象
       try {
         namespaceService.createNamespace(Env.valueOf(model.getEnv()), namespace);
       } catch (Exception e) {
@@ -147,7 +148,7 @@ public class NamespaceController {
                         namespace.getNamespaceName()), e);
       }
     }
-
+    // 授予 Namespace Role 给当前管理员
     namespaceService.assignNamespaceRoleToOperator(appId, namespaceName,userInfoHolder.getUser().getUserId());
 
     return ResponseEntity.ok().build();
@@ -191,8 +192,11 @@ public class NamespaceController {
   public AppNamespace createAppNamespace(@PathVariable String appId,
       @RequestParam(defaultValue = "true") boolean appendNamespacePrefix,
       @Valid @RequestBody AppNamespace appNamespace) {
+    // 创建 namespace
     AppNamespace createdAppNamespace = appNamespaceService.createAppNamespaceInLocal(appNamespace, appendNamespacePrefix);
-
+    // 赋予权限，若满足如下任一条件：
+    // 1. 公开类型的 AppNamespace 。
+    // 2. 私有类型的 AppNamespace ，并且允许 App 管理员创建私有类型的 AppNamespace 。
     if (portalConfig.canAppAdminCreatePrivateNamespace() || createdAppNamespace.isPublic()) {
       namespaceService.assignNamespaceRoleToOperator(appId, appNamespace.getName(),
           userInfoHolder.getUser().getUserId());

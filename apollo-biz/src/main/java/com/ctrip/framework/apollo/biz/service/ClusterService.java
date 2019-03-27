@@ -64,9 +64,9 @@ public class ClusterService {
 
   @Transactional
   public Cluster saveWithInstanceOfAppNamespaces(Cluster entity) {
-
+    //save 方法
     Cluster savedCluster = saveWithoutInstanceOfAppNamespaces(entity);
-
+    // 给 app 绑定 集群  创建 Cluster 的 Namespace 们
     namespaceService.instanceOfAppNamespaces(savedCluster.getAppId(), savedCluster.getName(),
                                              savedCluster.getDataChangeCreatedBy());
 
@@ -75,9 +75,11 @@ public class ClusterService {
 
   @Transactional
   public Cluster saveWithoutInstanceOfAppNamespaces(Cluster entity) {
+    // 唯一性校验
     if (!isClusterNameUnique(entity.getAppId(), entity.getName())) {
       throw new BadRequestException("cluster not unique");
     }
+    // 防止新增 是存在id
     entity.setId(0);//protection
     Cluster cluster = clusterRepository.save(entity);
 
